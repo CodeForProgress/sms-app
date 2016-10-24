@@ -13,6 +13,19 @@ import string
 import random
 
 
+from flask import Flask, request, session, Response
+from twilio import twiml
+from twilio.rest import TwilioRestClient
+
+import logging
+from functools import wraps
+import  pprint
+import json 
+import random
+import string
+
+
+
 # Create app
 app = Flask(__name__)
 
@@ -236,6 +249,70 @@ def addTeamMember():
     else:
         flash("You do not have permission to view this resource.")
         return redirect(url_for('home'))
+
+
+@app.route("/sms", methods=["GET","POST"])
+def inbound_sms():
+    response = twiml.Response()
+    inbound_msg_body = request.form.get("Body")
+    inbound_msg_from = request.form.get("From")
+    menu = "Press 1 to report an emergency \n Press 2 to report an emergency \n"
+
+    # response_msg = "Yo, %s" %(callers[inbound_msg_from])
+
+    # response.message(response_msg)
+    
+    activate_session=session.get("activate_session")
+    menu_session=session.get("menu_session")
+    if menu_session == True:
+        if inbound_msg_body == "1":
+            message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
+                                                  body="Emergency support logged. Standby.")
+            session.pop("menu_session")
+
+    elif activate_session == True:
+        user_first_name = inbound_msg_body.split(" ")[0]
+        user_last_name = inbound_msg_body.split(" ")[1]
+        user_phone = inbound_msg_from
+        new_users[user_phone]= {"fist_name":user_first_name,"last_name":user_last_name}
+        session.pop("activate_session")
+        print new_users
+
+    elif (inbound_msg_body[:9].lower()).replace(" ","") == "activate":
+        message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
+                                                  body="What is your full name?")
+        activate_session = True
+        session["activate_session"] = activate_session
+
+
+
+    elif inbound_msg_body[:5].lower()=="menu":
+        message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
+                                                  body=menu)
+        menu_session = session.get("menu_session")
+        print menu_session
+        menu_session = True
+        session["menu_session"] = menu_session
+
+        # session.pop("menu_session")
+
+        # message = client.messages.create(to=number, from_=TWILIO_NUMBER,body=["Respond with 1: if you are in trouble."])
+
+    elif inbound_msg_body[:2].lower()=="tl":
+        for number in leads_numbers:
+            if inbound_msg_from != number:
+                message = client.messages.create(to=number, from_=TWILIO_NUMBER,
+                                                  body="%s: %s" %(team_leads[inbound_msg_from],inbound_msg_body))
+    else:
+        team_number = callers[inbound_msg_from]["Team"]
+        # team_numbers = "team_%s_numbers"%(team_number)
+        for number in team_numbers[team_number-1]:
+            if inbound_msg_from != number:
+                print inbound_msg_body
+                message = client.messages.create(to=number, from_=TWILIO_NUMBER,
+                                                  body="%s: %s" %(callers[inbound_msg_from]["Name"],inbound_msg_body))
+    return "Done"
+
 
 
 if __name__ == '__main__':
