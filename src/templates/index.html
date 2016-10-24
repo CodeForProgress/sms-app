@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SMS App</title>
+</head>
+<body>
+{% include "security/_messages.html" %}
+
+	<p>Welcome {{ current_user.first_name }} {{ current_user.last_name }}!</p>
+	<p>You are a {{ current_user.roles[0].description }}. </p>
+
+	<p><a href="/addRegional">Add a Regional Leader</a></p>
+	<p><a href="/addTeamLeader">Add a Team Leader</a></p>
+	<p><a href="/addTeamMember">Add a Team Member</a></p>
+
+	<p><a href="/logout">Logout Here</a></p>
+</body>
+</html>

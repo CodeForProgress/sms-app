@@ -1,0 +1,21 @@
+{% include "security/_messages.html" %}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Add a Team Member</title>
+</head>
+<body>
+
+	<h1>Add a Team Member</h1>
+
+	<form action = '/addTeamMember' method = 'POST'>
+		<p>First Name<br> <input type="text" name="first_name" required></p>
+		<p>Last Name<br> <input type="text" name="last_name" required></p>
+		<p>Phone Number<br><span style="font-size: 10px; color: grey;">Format: XXX-XXX-XXXX</span><br><input type="tel" pattern="^\d{3}-\d{3}-\d{4}$" name="phone_number" required></p>
+		<p>Van Number<br> <input type="number" name="van" required></p>
+		<p>Shift<br> <input type="text" name="shift" required></p>
+		<p><input type="submit" value="Submit"></p>
+	</form>
+</body>
+</html>

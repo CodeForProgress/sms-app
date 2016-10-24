@@ -1,0 +1,20 @@
+{% include "security/_messages.html" %}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Add a Regional Supervisor</title>
+</head>
+<body>
+
+	<h1>Add a Regional Supervisor</h1>
+
+	<form action = '/addRegional' method = 'POST'>
+		<p>First Name<br> <input type="text" name="first_name" required></p>
+		<p>Last Name<br> <input type="text" name="last_name" required></p>
+		<p>Email<br> <input type="email" name="email" required></p>
+		<p>Phone Number<br><span style="font-size: 10px; color: grey;">Format: XXX-XXX-XXXX</span><br><input type="tel" pattern="^\d{3}-\d{3}-\d{4}$" name="phone_number" required></p>
+		<p><input type="submit" value="Submit"></p>
+	</form>
+</body>
+</html>
