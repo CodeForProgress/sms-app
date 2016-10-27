@@ -6,7 +6,7 @@ from flask_mail import Mail, Message
 from flask_security.forms import RegisterForm, LoginForm, ChangePasswordForm
 from wtforms import StringField
 from wtforms.validators import Required, InputRequired
-
+from datetime import datetime
 
 import psycopg2
 import string
@@ -99,13 +99,16 @@ class User(db.Model, UserMixin):
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime())
     roles = db.relationship('Role', secondary=roles_users,
-                            backref=db.backref('users', lazy='dynamic'))
+                                    backref=db.backref('users', lazy='dynamic'))
+class Emergency(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    msg = db.Column(db.String(1000))
+    time = db.Column(db.DateTime())
+    phone_number = db.Column(db.String(15))
 
 # Setup Flask-Security
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore, register_form=ExtendedRegisterForm)
-
-
 
 # # Create a user to test with
 # @app.before_first_request
@@ -113,7 +116,7 @@ security = Security(app, user_datastore, register_form=ExtendedRegisterForm)
 #     db.create_all()
 #     user_datastore.create_user(email='ronesha@codeforprogress.org', password='password')
 #     db.session.commit()
-
+# db.create_all()
 #methods 
 def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.SystemRandom().choice(chars) for _ in range(size))
@@ -176,7 +179,6 @@ def addRegional():
         return redirect(url_for('addRegional'))
 
     return render_template('regional.html')
-
 
 @app.route('/addTeamLeader', methods=['GET', 'POST'])
 def addTeamLeader():
@@ -253,7 +255,6 @@ def addTeamMember():
         flash("You do not have permission to view this resource.")
         return redirect(url_for('home'))
 
-
 @app.route("/sms", methods=["GET","POST"])
 def get_text():
     from flask import Flask, request, session, Response
@@ -272,64 +273,101 @@ def get_text():
 
     TWILIO_NUMBER="+13474078862"
 
-    team_leads_contact = db.session.query(User).join(User.roles).filter(Role.name=="teamlead").all()
-    state_leader = db.session.query(User).join(User.roles).filter(Role.name=="statelead").all()
+    team_leads_contact = db.session.query(User).join(User.roles).filter(Role.name=="team lead").all()
+    # print team_leads_contact
+    state_leader = db.session.query(User).join(User.roles).filter(Role.name=="state").all()
     team_lead = db.session.query(User).join(User.roles).filter(Role.name=="teamlead").all()
-    reg_lead = db.session.query(User).join(User.roles).filter(Role.name=="regional").all()
+    # print team_lead
     
+    reg_lead = db.session.query(User).join(User.roles).filter(Role.name=="regional").all()
+    if len(reg_lead) >= 1:
+        for x in reg_lead:
+            reg_lead_numbers = []
+            reg_lead_numbers.append(x.phone_number)
+            print reg_lead_numbers
+    else:
+        print "there are no reg_lead"
+
+    member = db.session.query(User).join(User.roles).filter(Role.name=="member").all()
+
     response = twiml.Response()
     inbound_msg_body = request.form.get("Body")
     inbound_msg_from = request.form.get("From")
     menu = "Press 1 to report an emergency \n Press 2 to report an emergency \n"
-
-    # response_msg = "Yo, %s" %(callers[inbound_msg_from])
-
-    # response.message(response_msg)
     
+    inc_msg_user_role = db.session.query(Role).join(User.roles).filter(User.phone_number==inbound_msg_from).first()
+    inc_msg_user_role = inc_msg_user_role.name
+    
+    inc_msg_van = db.session.query(User).join(User.roles).filter(User.phone_number==inbound_msg_from).first()
+    inc_msg_van = inc_msg_van.van
+
     activate_session=session.get("activate_session")
     menu_session=session.get("menu_session")
     last_name_session = session.get("last_name_session")
     is_active = session.get("is_active")
+    emergency = session.get("emergency_session")
+    add_van = session.get("add_van_session")
+    # session.pop("add_van_session")
+    # session.pop("menu_session")
     # session.pop("activate_session")
 
+    #Brings back incoming messenger role
+    for x in team_leads_contact:
+        print "Printing team leads"
+        print x.phone_number
+    # ACTIVATE SESSION BEGINS HERE
     if menu_session == True:
-        if inbound_msg_body == "1":
-            message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                                  body="Emergency support logged. Standby.")
-            session.pop("menu_session")
-
-    # ACTIVATE SESSION BEGINS HERE!
-    elif (inbound_msg_body[:9].lower()).replace(" ","") == "activate":
+        if inbound_msg_body == "1":   
+            session.get("emergency_session")          
+    elif inbound_msg_body[:9].lower().replace(" ","") == "activate":
         try:
-            user = User.query.filter(User.phone_number== inbound_msg_from).one()
-            active = user.on_shift
-            if active == True:
+            user = User.query.filter(User.phone_number == inbound_msg_from).one()
+            on_shift = user.on_shift
+            if on_shift == True:
                 message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                     body="You are already active")
+                                     body="Welcome back!")
             else:
                 db.session.query(User).filter(User.phone_number == inbound_msg_from).update({"on_shift":(True)})
                 db.session.commit()
                 message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                     body="You've been activated")
+                                     body="You've been activated, what is your van number?")
+                a = True
+                session.get("add_van_session")
+                session['add_van_session'] = a
+                print a 
         except:
-            message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                         body="What is your first name?")
+            message = client.messages.create(to=inbound_msg_from,
+                                             from_=TWILIO_NUMBER,
+                                             body="What is your first name?")
+            #starts activate session
             activate_session = True
             session["activate_session"] = activate_session
-    
+    elif inc_msg_user_role =="teamlead" and inbound_msg_body[:3] == "tl":
+        fellow_tl = db.session.query(User).join(User.roles).filter(Role.name=="teamlead").filter(User.van==inc_msg_van).all()
+    elif add_van == True:
+        print "got to add van script"
+        try:
+            db.session.query(User).filter(User.phone_number==inbound_msg_from).update({'van':int(inbound_msg_body)})
+            db.session.commit()
+            session.pop("add_van_session")
+        except:
+            message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
+                                     body="Please provide us with the correct van number")
+            session[add_van]= True            
     elif activate_session == True:
         a = []
+        #the msg received after the first name will be used as their first name
         user_first_name = inbound_msg_body.replace(" ","")
         
         user_phone = inbound_msg_from
+        #Starts session to get last name
         activate_last_name_session = True
         a.append(user_first_name)
+        #takes list and saves it in session
         session["last_name_session"] = a
         message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
                                           body="What is your Last name")
-        print len(session["last_name_session"])
         session.pop("activate_session")
-
     elif last_name_session:
         if len(last_name_session) == 1:
             print "*****SESION RAN"
@@ -337,9 +375,11 @@ def get_text():
             user_first_name = session["last_name_session"][0]
             user_phone = inbound_msg_from
             new_users = User(first_name=user_first_name, 
-                    last_name=user_last_name, 
-                    phone_number=user_phone,
-                    on_shift=True)
+                             last_name=user_last_name, 
+                             phone_number=user_phone,
+                             on_shift=True)
+            new_role = db.session.query(Role).filter_by(name="member").first()
+            new_users.roles.append(new_role)
             db.session.add(new_users)
             db.session.commit()
             message = client.messages.create(to=inbound_msg_from, 
@@ -347,41 +387,93 @@ def get_text():
                                              body="You are now active")
             session.pop("last_name_session")
             session["is_active"] = True
-
     elif (inbound_msg_body[:11].lower()).replace(" ","") == "deactivate":
         try:
             user = User.query.filter(User.phone_number== inbound_msg_from).one()
-            active = user.on_shift
-            if active == True:
+            if user.on_shift == True:
                 db.session.query(User).filter(User.phone_number == inbound_msg_from).update({"on_shift":(False)})
+                db.session.query(User).filter(User.phone_number == inbound_msg_from).update({"van":(0)})
                 db.session.commit()
                 message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
                                      body="Good Bye")
             else:
                 message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
                                      body="You're not active.")
-
         except:
             message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
                                      body="This number is not registered in our system")
-
     elif inbound_msg_body[:5].lower()=="menu":
+        
         message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
                                                   body=menu)
         menu_session = session.get("menu_session")
+        
         print menu_session
-        menu_session = True
-        session["menu_session"] = menu_session
+        message = client.messages.create(to=inbound_msg_from, 
+                                         from_=TWILIO_NUMBER,
+                                         body=["What is your emergency?"])
+        a = "save emergency"
+        session["menu_session"] = a
+    elif menu_session == "save emergency":
+        # session["emergency_session"] = inbound_msg_body
+        new_emergency = Emergency(msg=inbound_msg_body,
+                                  time=datetime.now(),
+                                  phone_number=inbound_msg_from)
+        db.session.add(new_emergency)
+        db.session.commit()
+        session.pop("menu_session")
+    elif (inbound_msg_body[:7].lower()) == "urgent":
+        print "*****caught emergency msg"
+        inbound_msg_body = inbound_msg_body.lower().replace("urgent","")
+        inbound_msg_body.capitalize()
+        print inbound_msg_body
 
-        # session.pop("menu_session")
-        # message = client.messages.create(to=number, from_=TWILIO_NUMBER,body=["Respond with 1: if you are in trouble."])
+        new_emergency = Emergency(msg=inbound_msg_body,
+                                  time=datetime.now(),
+                                  phone_number=inbound_msg_from)
 
-    elif inbound_msg_body[:2].lower()=="tl":
-        team_leads_contact = db.session.query(User).join(User.roles).filter(Role.name=="teamlead").all()
-        # for number in leads_numbers:
-        #     if inbound_msg_from != number:
-        #         message = client.messages.create(to=number, from_=TWILIO_NUMBER,
-        #                                           body="%s: %s" %(team_leads[inbound_msg_from],inbound_msg_body))
+
+        db.session.add(new_emergency)
+        db.session.commit()
+        user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
+        team_members = db.session.query(User).filter(User.van == user.van).all()
+        
+        for x in team_members:
+            print x.phone_number
+            if inbound_msg_from != x.phone_number:
+                message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,
+                                                    body="%s: %s" %(user.first_name,inbound_msg_body))
+    elif inbound_msg_body[:7].lower().replace(" ","") == "roster" and inc_msg_user_role == "teamlead":
+        roster = db.session.query(User).filter(User.van==inc_msg_van).filter(User.on_shift==True).all()
+        roster_list = []
+        for x in roster:
+            print roster_list.append(x.first_name)
+        message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
+                                     body=("You're current van members are %s"%roster_list))
+    #For Regional Managers to send msgs to respective TLs & Members
+    elif inbound_msg_from in reg_lead_numbers:
+        if inbound_msg_body[:2].lower() == "tl":
+            user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
+            print user.phone_number
+            team_leads = db.session.query(User).filter(User.van == user.van).join(User.roles).filter(Role.name=="teamlead").all()
+            for x in team_leads:
+                print x.van
+                message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,
+                                                        body="%s: %s" %(user.first_name,inbound_msg_body))
+        else:
+            user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
+            team_members = db.session.query(User).filter(User.van == user.van).all()
+            for x in team_members:
+                print x.phone_number
+                if inbound_msg_from != x.phone_number:
+                    message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,
+                                                        body="%s: %s" %(user.first_name,inbound_msg_body))
+    # elif inbound_msg_body[:2].lower()=="tl":
+    #     team_leads_contact = db.session.query(User).filter(team_number).join(User.roles).filter(Role.name=="teamlead").all()
+    #     for number in leads_numbers:
+    #         if inbound_msg_from != number:
+    #             message = client.messages.create(to=number, from_=TWILIO_NUMBER,
+    #                                               body="%s: %s" %(team_leads[inbound_msg_from],inbound_msg_body))
     else:
         user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
         team_members = db.session.query(User).filter(User.van == user.van).all()
@@ -390,14 +482,6 @@ def get_text():
             if inbound_msg_from != x.phone_number:
                 message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,
                                                     body="%s: %s" %(user.first_name,inbound_msg_body))
-
-        # # team_numbers = "team_%s_numbers"%(team_number)
-        # for number in team_numbers[team_number-1]:
-        #     if inbound_msg_from != number:
-        #         print inbound_msg_body
-        #         message = client.messages.create(to=number, from_=TWILIO_NUMBER,
-        #                                           body="%s: %s" %(callers[inbound_msg_from]["Name"],inbound_msg_body))
-        # return "Done"
     return "Done"
 
 if __name__ == '__main__':
