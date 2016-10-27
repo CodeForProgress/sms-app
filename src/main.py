@@ -75,6 +75,12 @@ roles_users = db.Table('roles_users',
         db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
         db.Column('role_id', db.Integer(), db.ForeignKey('role.id')))
 
+vans = db.Table('vans',
+    db.Column('van_leader_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('van_member_id', db.Integer, db.ForeignKey('user.id'))
+)
+
+
 class ExtendedRegisterForm(RegisterForm):
     first_name = StringField('First Name', [Required()])
     last_name = StringField('Last Name', [Required()])
@@ -92,14 +98,31 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(255), unique=True)
     phone_number = db.Column(db.String(), unique=True)
     shift = db.Column(db.String(255))
-    van = db.Column(db.Integer())
+    region = db.Column(db.String(255))
+    van = db.Column(db.String(255))
     password = db.Column(db.String(255))
     temp_pass = db.Column(db.Boolean())
     on_shift = db.Column(db.Boolean())
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime())
+    van_confirmed = db.Column(db.Boolean())
     roles = db.relationship('Role', secondary=roles_users,
-                                    backref=db.backref('users', lazy='dynamic'))
+                            backref=db.backref('users', lazy='dynamic'))
+    van_teams = db.relationship('User', 
+                               secondary=vans, 
+                               primaryjoin=(vans.c.van_leader_id == id), 
+                               secondaryjoin=(vans.c.van_member_id == id), 
+                               backref=db.backref('vans', lazy='dynamic'), 
+                               lazy='dynamic')
+
+    def add_to_van(self, user):
+        self.van_teams.append(user)
+        return self
+
+    def remove_from_van(self, user):
+        self.van_teams.remove(user)
+        return self
+
 class Emergency(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     msg = db.Column(db.String(1000))
@@ -110,13 +133,14 @@ class Emergency(db.Model, UserMixin):
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore, register_form=ExtendedRegisterForm)
 
-# # Create a user to test with
+# Create a user to test with
 # @app.before_first_request
 # def create_user():
 #     db.create_all()
 #     user_datastore.create_user(email='ronesha@codeforprogress.org', password='password')
 #     db.session.commit()
 # db.create_all()
+
 #methods 
 def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.SystemRandom().choice(chars) for _ in range(size))
@@ -125,14 +149,12 @@ def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
 @app.route('/')
 @login_required
 def home():
-    # print current_user
     if current_user.temp_pass == True:
         db.session.query(User).filter_by(id = current_user.id).update({'temp_pass': (False)})
         db.session.commit()
         return render_template('security/change_password.html', change_password_form = ChangePasswordForm())
     else: 
         return render_template('index.html')
-    # return current_user
 
 @app.route('/logout')
 def logout():
@@ -142,19 +164,21 @@ def logout():
 @app.route('/addRegional', methods=['GET', 'POST'])
 @roles_required('state')
 def addRegional():
-    print current_user.roles[0].name
     if request.method == "POST":
         first_name = request.form['first_name']
         last_name = request.form['last_name']
         email = request.form['email']
         phone_number = request.form['phone_number']
+        region = request.form['region']
 
+        phone_number = "+1" + phone_number
         password = id_generator()
 
         new_user = User(first_name = first_name, 
             last_name = last_name, 
             email = email, 
             phone_number=phone_number, 
+            region = region,
             password = password, 
             active = True, 
             temp_pass = True
@@ -171,14 +195,20 @@ def addRegional():
         Thank you. """ %(first_name, last_name, current_user.first_name, current_user.last_name, url, password) 
         mail.send(message)
 
-        db.session.add(new_user)
-        db.session.commit()
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("The user you entered is already active in our system.")
+            return redirect(url_for('home')) 
 
         flash("You've successfully added %s %s as a regional supervisor." %(first_name, last_name))
 
         return redirect(url_for('addRegional'))
 
     return render_template('regional.html')
+
 
 @app.route('/addTeamLeader', methods=['GET', 'POST'])
 def addTeamLeader():
@@ -187,73 +217,154 @@ def addTeamLeader():
         if request.method == "POST":
             first_name = request.form['first_name']
             last_name = request.form['last_name']
-            email = request.form['email']
+            email = request.form['email']  
             phone_number = request.form['phone_number']
-            van = request.form['van']
-
+            region = current_user.region
+            phone_number = "+1" + phone_number
+            
             password = id_generator()
 
             new_user = User(first_name = first_name, 
                 last_name = last_name, 
                 email = email, 
                 phone_number=phone_number, 
-                van = van, 
                 password = password, 
+                region = region,
                 active = True,
                 temp_pass = True
                 )
             new_role = db.session.query(Role).filter_by(name = 'teamlead').first()
             new_user.roles.append(new_role)
-            db.session.add(new_user)
+            try:
+                db.session.add(new_user)
 
-            url = 'http://3073f486.ngrok.io'
+                url = 'http://3073f486.ngrok.io'
 
-            message = Message("Confirm Your Account", recipients=[email])
-            message.body = """Dear %s %s, \n\n
-            You've been registered as a Team Leader by %s %s. \n\n
-            Please login to your account at %s using the password here: %s. \n\n
-            Thank you. """ %(first_name, last_name, current_user.first_name, current_user.last_name, url, password) 
-            mail.send(message)
+                message = Message("Confirm Your Account", recipients=[email])
+                message.body = """Dear %s %s, \n\n
+                You've been registered as a Team Leader by %s %s. \n\n
+                Please login to your account at %s using the password here: %s. \n\n
+                Thank you. """ %(first_name, last_name, current_user.first_name, current_user.last_name, url, password) 
+                mail.send(message)
 
-
-            db.session.commit()
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("The user you entered is already active in our system.")
+                return redirect(url_for('home')) 
+            
             flash("You've successfully added %s %s as a Team Leader." %(first_name, last_name))
             return redirect(url_for('addTeamLeader'))
         return render_template('teamlead.html')
-    else: 
+
+    else:
         flash("You do not have permission to view this resource.")
-        return redirect(url_for('home'))
+        redirect(url_for('home'))
+    
 
 @app.route('/addTeamMember', methods=['GET', 'POST'])
 def addTeamMember():
 
-    if current_user.roles[0].name == "state" or current_user.roles[0].name == "regional" or current_user.roles[0] == "teamlead":
+    if current_user.roles[0].name == "state" or current_user.roles[0] == "regional" or current_user.roles[0] == "teamlead":
         if request.method == "POST":
             first_name = request.form['first_name']
-            last_name = request.form['last_name']
-            email = request.form['email']
+            last_name = request.form['last_name']   
             phone_number = request.form['phone_number']
-            van = request.form['van']
-            shift = request.form['shift']
+            region = current_user.region
 
+            phone_number = "+1" + phone_number
+            
             new_user = User(first_name = first_name, 
                 last_name = last_name, 
                 phone_number=phone_number, 
-                van = van, 
-                shift = shift,
+                region = region,
                 active = True,
                 on_shift = False
                 )
             new_role = db.session.query(Role).filter_by(name = 'member').first()
             new_user.roles.append(new_role)
-            db.session.add(new_user)
-            db.session.commit()
+
+            try:
+                db.session.add(new_user)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("The user you entered is already active in our system.")
+                return redirect(url_for('home')) 
+            
             flash("You've successfully added %s %s as a Team Member." %(first_name, last_name))
             return redirect(url_for('addTeamMember'))
         return render_template('teammember.html')
     else:
         flash("You do not have permission to view this resource.")
         return redirect(url_for('home'))
+
+@app.route('/assignments', methods=['GET', 'POST'])
+@roles_required('regional')
+def van_assignments():
+    team_leaders = db.session.query(User).join(User.roles).filter(Role.name == 'teamlead').all()
+    if request.method == 'POST':
+        team_lead_id = request.form['team_leaders']
+        van_number = request.form['van_number']
+        vanspaces = request.form['vanspaces']
+        vanspaces = int(vanspaces)
+
+        team_lead = db.session.query(User).join(User.roles).filter(User.id == team_lead_id).first()
+        team_lead.van = van_number
+        db.session.commit() 
+
+        team_region = team_lead.region
+        flash("You've added %s %s as a new team leader." %(team_lead.first_name, team_lead.last_name))
+        return redirect(url_for('team_van_assignments', team_region = team_region, team_lead_id = team_lead_id, van_number = van_number, vanspaces = vanspaces))
+    return render_template('assignments.html', team_leaders = team_leaders)
+
+
+@app.route('/<team_region>/teamassignments/<team_lead_id>/no<van_number>/<vanspaces>', methods =['GET', 'POST'])
+@roles_required('regional')
+def team_van_assignments(team_region, team_lead_id, van_number, vanspaces):
+    team_members = db.session.query(User).join(User.roles).filter(Role.name == 'member').filter(User.region == team_region).all()
+    vanspaces = int(vanspaces)
+   
+    if request.method == "POST":
+        new_team_leader = db.session.query(User).filter_by(id = team_lead_id).first()
+        for x in range(vanspaces):
+            team_member_id = request.form['team_member_' + str(x)]
+            new_team_member = db.session.query(User).filter_by(id=team_member_id).first()
+            new_team_member.van = van_number
+            new_team_member.van_confirmed = False
+            assign_to_van = new_team_leader.add_to_van(new_team_member)
+            db.session.add(assign_to_van)
+            db.session.commit()
+
+        return redirect(url_for('home'))
+    return render_template('teamassignments.html', team_members = team_members, vanspaces = vanspaces)
+
+
+@app.route('/teamconfirmation', methods=['GET', 'POST'])
+@roles_required('teamlead')
+def team_confirmation():
+    team_members = db.session.query(User).join(User.roles).filter(Role.name == 'member').filter(User.van == current_user.van).all()
+
+    if team_members:
+        if request.method == "POST":
+            for x in team_members:
+                team_member_id = x.id  
+                team_member = db.session.query(User).filter_by(id=team_member_id).first()   
+                team_member_confirmed = request.form['confirmed_' + str(x.id)]
+                if team_member_confirmed == "False":
+                    team_member.van = None
+                    team_member.van_confirmed = False 
+                else: 
+                    team_member.van_confirmed = True
+                db.session.commit()
+            flash ("You've confirmed your team. Thanks!")
+            return redirect(url_for('home'))
+    else:
+        flash("There are no team members to confirm.")
+        return redirect(url_for('home'))
+    return render_template('teamconfirmation.html', team_members = team_members)
+
+
 
 @app.route("/sms", methods=["GET","POST"])
 def get_text():
@@ -287,9 +398,7 @@ def get_text():
             print reg_lead_numbers
     else:
         print "there are no reg_lead"
-
     member = db.session.query(User).join(User.roles).filter(Role.name=="member").all()
-
     response = twiml.Response()
     inbound_msg_body = request.form.get("Body")
     inbound_msg_from = request.form.get("From")
@@ -310,11 +419,6 @@ def get_text():
     # session.pop("add_van_session")
     # session.pop("menu_session")
     # session.pop("activate_session")
-
-    #Brings back incoming messenger role
-    for x in team_leads_contact:
-        print "Printing team leads"
-        print x.phone_number
     # ACTIVATE SESSION BEGINS HERE
     if menu_session == True:
         if inbound_msg_body == "1":   
@@ -427,12 +531,9 @@ def get_text():
         inbound_msg_body = inbound_msg_body.lower().replace("urgent","")
         inbound_msg_body.capitalize()
         print inbound_msg_body
-
         new_emergency = Emergency(msg=inbound_msg_body,
                                   time=datetime.now(),
                                   phone_number=inbound_msg_from)
-
-
         db.session.add(new_emergency)
         db.session.commit()
         user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
