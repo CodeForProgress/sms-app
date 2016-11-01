@@ -149,12 +149,17 @@ def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
 @app.route('/')
 @login_required
 def home():
+    regional_leads = db.session.query(User).join(User.roles).filter(Role.name == 'regional').all()
+    team_leads = db.session.query(User).join(User.roles).filter(Role.name == 'teamlead').all()
     if current_user.temp_pass == True:
         db.session.query(User).filter_by(id = current_user.id).update({'temp_pass': (False)})
         db.session.commit()
         return render_template('security/change_password.html', change_password_form = ChangePasswordForm())
     else: 
-        return render_template('index.html')
+        if current_user.roles[0] == "teamlead":
+            return redirect(url_for('team_confirmation'))
+        
+        return render_template('index.html', regional_leads=regional_leads, team_leads=team_leads, user_role=user_role)
 
 @app.route('/logout')
 def logout():
@@ -351,7 +356,7 @@ def team_confirmation():
                 team_member_id = x.id  
                 team_member = db.session.query(User).filter_by(id=team_member_id).first()   
                 team_member_confirmed = request.form['confirmed_' + str(x.id)]
-                if team_member_confirmed == "False":
+                if team_member_confirmed != "True":
                     team_member.van = None
                     team_member.van_confirmed = False 
                 else: 
@@ -364,6 +369,45 @@ def team_confirmation():
         return redirect(url_for('home'))
     return render_template('teamconfirmation.html', team_members = team_members)
 
+@app.route('/regions')
+@roles_required('state')
+def region_overview():
+    regional_leaders = db.session.query(User).join(User.roles).filter(Role.name == 'regional').all()
+
+    return render_template('regional_overview.html', regional_leaders = regional_leaders)
+
+@app.route('/regions/<region_id>')
+@roles_required('state')
+def region_details(region_id):
+    regional_leader = db.session.query(User).join(User.roles).filter(Role.name == 'regional').filter(region == region_id).first()
+    team_leaders = db.session.query(User).join(User.roles).filter(Role.name == 'teamlead').filter(region == region_id).all()
+
+    return render_template('regional_details.html', regional_leader = regional_leader, team_leaders = team_leaders)
+
+@app.route('/teams')
+@login_required
+def teams_overview():
+    
+    return render_template('team_overview.html')
+
+
+@app.route('/messages')
+@login_required
+def messages_overview():
+    
+    return render_template('messages_overview.html')
+
+@app.route('/alerts')
+@login_required
+def alerts_overview():
+    
+    return render_template('alerts_overview.html')
+
+@app.route('/account')
+@login_required
+def account_overview():
+    
+    return render_template('account_overview.html')
 
 
 @app.route("/sms", methods=["GET","POST"])

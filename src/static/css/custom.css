@@ -1,0 +1,315 @@
+ body {
+    overflow-x: hidden;
+ }
+.errors{
+    font-family: 'Raleway', sans-serif;
+    font-size: 10px;
+    color: #E74C3C;
+}
+
+.confirm__text{
+    font-family: 'Raleway', sans-serif;
+    font-size: 18px;
+    margin-left: 20px;
+
+}
+
+.confirm__header{
+    color: #2C3E50;
+    font-family: 'Raleway', sans-serif;
+    font-size: 24px;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    border-bottom: thin double rgba(41,128,185,1.0);
+
+}
+
+
+.banner__header_text{
+    color: white;
+    font-family: 'Raleway', sans-serif;
+    font-size: 28px;
+}
+ .bg_blue{
+    margin-top: 10px;
+    background-color: #2C3E50;
+ }
+
+ .form__class{
+    padding: 10px;
+ }
+
+ .homepage__banner{
+    font-family: 'Raleway', sans-serif;
+    font-size: 2.8em;
+    margin-top: 5vh;
+    padding-bottom: 10px;
+    border-bottom: thick double rgba(41,128,185,1.0);
+ }
+
+.login__box{
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: white;
+    margin-top: 20px;
+    font-family: 'Raleway', sans-serif;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 15px;
+
+}
+
+.login__box:hover{
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+
+.login__box__header{
+    font-family: 'Raleway', sans-serif;
+    font-size: 24px;
+}
+
+.card__footer{
+    color: 
+}
+ /* Color Classes */
+
+ .light_blue_box{
+    color: #3498DB;
+    font-family: 'Raleway', sans-serif;
+ }
+
+.light_blue{
+    background-color: #2980B9;
+    color: white;
+}
+
+.light_blue_text{
+    color: #2980B9;
+}
+
+.dark_blue{
+    color: #2C3E50;
+ }
+
+ .amber_red{
+    color: #E74C3C;
+ }
+
+ .card__box{
+    text-align: center;
+    font-size: 20px;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    color: rgba(0,0,0,0.2);
+ }
+
+ .dark_blue_box{
+    color: #E74C3C;
+    font-family: 'Raleway', sans-serif;
+ }
+
+ .light-blue{
+    color: #3498DB;
+ }
+
+ .amber-red{
+    color: #E74C3C;
+ }
+
+ .card {
+    /* Add shadows to create the "card" effect */
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    margin-bottom: 20px;
+}
+
+/* On mouse-over, add a deeper shadow */
+.card:hover {
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+
+/* Add some padding inside the card container */
+.__container {
+    padding: 2px 16px;
+}
+
+ .__header{
+    color: #3498DB;
+    font-family: 'Raleway', sans-serif;
+    font-size: 30px;
+ }
+
+ .__box{
+    padding: 30px;
+    text-align: center;
+    border: solid 2px rgba(0,0,0,0.1);
+    border-radius: 25px;
+
+ }
+  .__box_wrapper{
+    padding: 20px;
+  }
+
+ .__box__text{
+    font-family: 'Raleway', sans-serif;
+    font-size: 16px;
+
+ }
+
+.underline__header{
+    padding-bottom: 10px;
+    margin-bottom: 40px;
+    border-bottom: thin double rgba(41,128,185,0.1);
+}
+
+.__active{
+    text-decoration: none;
+    color: #fff;
+    background: rgba(52,152,219,0.2);
+    border-left: solid #3498DB;
+    border-bottom: solid 2px rgba(41,128,185,0.1);
+}
+.sidebar-nav__upper {
+    position: absolute;
+    height: 100;
+    width: 250px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: rgba(52,152,219,0.2);
+    border-bottom: thick double rgba(41,128,185,0.2);
+}
+
+.profile_pic{
+    padding-top: 20px;
+    padding-bottom: 20px;
+    margin: auto;
+}
+
+
+/* Toggle Styles */
+
+#wrapper {
+    padding-left: 0;
+    -webkit-transition: all 0.5s ease;
+    -moz-transition: all 0.5s ease;
+    -o-transition: all 0.5s ease;
+    transition: all 0.5s ease;
+}
+
+#wrapper.toggled {
+    padding-left: 250px;
+}
+
+#sidebar-wrapper {
+    z-index: 1000;
+    position: fixed;
+    left: 250px;
+    width: 0;
+    height: 100%;
+    margin-left: -250px;
+    overflow-y: auto;
+    background: #2C3E50;
+    font-size: 14px;
+    font-family: 'Raleway', sans-serif;
+    border-right: solid 3px #E74C3C;
+    -webkit-transition: all 0.5s ease;
+    -moz-transition: all 0.5s ease;
+    -o-transition: all 0.5s ease;
+    transition: all 0.5s ease;
+}
+
+#wrapper.toggled #sidebar-wrapper {
+    width: 250px;
+}
+
+#page-content-wrapper {
+    width: 100%;
+    position: absolute;
+    padding: 15px;
+}
+
+#wrapper.toggled #page-content-wrapper {
+    position: absolute;
+    margin-right: -250px;
+}
+
+/* Sidebar Styles */
+
+.sidebar-nav {
+   /* position: absolute;*/
+    /*top: 100;*/
+    width: 250px;
+    margin-top: 115px;
+    padding: 0;
+    list-style: none;
+}
+
+.sidebar-nav li {
+    text-indent: 20px;
+    line-height: 40px;
+}
+
+.sidebar-nav li a {
+    display: block;
+    text-decoration: none;
+    color: #ECF0F1;
+}
+
+.sidebar-nav li a:hover {
+    text-decoration: none;
+    color: #fff;
+    background: rgba(52,152,219,0.2);
+}
+
+.sidebar-nav li a:active{
+    text-decoration: none;
+}
+
+.sidebar-nav li a:active,
+.sidebar-nav li a:focus {
+    text-decoration: none;
+}
+
+.sidebar-nav > .sidebar-brand {
+    height: 65px;
+    font-size: 18px;
+    line-height: 60px;
+}
+
+.sidebar-nav > .sidebar-brand a {
+    color: #fff;
+}
+
+.sidebar-nav > .sidebar-brand a:hover {
+    color: #fff;
+    background: none;
+}
+
+@media(min-width:768px) {
+    #wrapper {
+        padding-left: 250px;
+    }
+
+    #wrapper.toggled {
+        padding-left: 0;
+    }
+
+    #sidebar-wrapper {
+        width: 250px;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        width: 0;
+    }
+
+    #page-content-wrapper {
+        padding: 20px;
+        position: relative;
+    }
+
+    #wrapper.toggled #page-content-wrapper {
+        position: relative;
+        margin-right: 0;
+    }
+}

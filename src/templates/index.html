@@ -1,18 +1,232 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title>SMS App</title>
-</head>
+{% extends "base.html" %}
+{% block title %}
+StateLess! | Dashboard
+{% endblock %}
+{% block content %}
 <body>
-{% include "security/_messages.html" %}
+<div id="wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-wrapper">
+            <div class="sidebar-nav__upper">
+                <li class="profile_pic banner__header_text text-center">
+                	 <span>
+                    <p>Hello, {{current_user.first_name}}</p>
+                    </span>
+                </li>
+            </div>
+            <ul class="sidebar-nav">
+                {% if current_user.roles[0] != 'teamlead' %}
+                <li class="__active">
+                    <a href="/"><span class="fa fa-tachometer light-blue" aria-hidden="true"></span>&nbsp; Dashboard</a>
+                </li>
+                {% endif %}
+                <li>
+                    {% if current_user.roles[0] == 'teamlead' %}
+                    <a href="/teamconfirmation"><span class="fa fa-map-marker light-blue" aria-hidden="true"></span>&nbsp; Confirm Team</a>
 
-	<p>Welcome {{ current_user.first_name }} {{ current_user.last_name }}!</p>
-	<p>You are a {{ current_user.roles[0].description }}. </p>
+                    {% elif current_user.roles[0] == 'state' %}
+                    <a href="/regions"><span class="fa fa-map-marker light-blue" aria-hidden="true"></span>&nbsp; Regions</a>
 
-	<p><a href="/addRegional">Add a Regional Leader</a></p>
-	<p><a href="/addTeamLeader">Add a Team Leader</a></p>
-	<p><a href="/addTeamMember">Add a Team Member</a></p>
+                    {% elif current_user.roles[0] == 'regional' %}
+                    <a href="/teams"><span class="fa fa-users light-blue" aria-hidden="true"></span>&nbsp; Teams</a>
+                    {% endif %}
 
-	<p><a href="/logout">Logout Here</a></p>
-</body>
-</html>
+                </li>
+                {% if current_user.roles[0] == 'teamlead' %}
+                    <li>
+                    <a href="/addTeamMember"><span class="fa fa-plus light-blue" aria-hidden="true"></span>&nbsp; Add Team Member</a>
+                    </li>
+                {% endif %}
+                <li>
+                    <a href="/messages"><span class="fa fa-comments light-blue" aria-hidden="true"></span>&nbsp; Messages</a>
+                </li>
+                <li>
+                    <a href="/alerts"><span class="fa fa-exclamation-circle light-blue" aria-hidden="true"></span>&nbsp; Alerts</a>
+                </li>
+                <li>
+                	<p><a href="/logout"><span class="fa fa-sign-out light-blue" aria-hidden="true"></span>&nbsp; Logout</a></p>
+                </li>
+            </ul>
+        </div>
+        <!-- /#sidebar-wrapper -->
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                    	<div class='row underline__header'>
+                    		<div class='col-xs-2'>
+                    		<span><a href="#menu-toggle" id="menu-toggle"><span class="hvr-shrink fa fa-bars fa-3x amber-red" aria-hidden="true"></span></a></span>
+                    		</div>
+                    		<div class='col-xs-8 col-xs-offset-2'>
+	                    	<span class="__header pull-right">StateLess</span>
+                    		</div>
+                    	</div>
+                    	<div class="row">
+                        {% if user_role == 'state' %}
+                    		<div class="col-md-6">
+                    			<div class="login__box">
+								  <div class="__container">
+								  	<span class="light_blue_box"><h4><b>Regional Leaders</b></h4> </span>
+								  	<hr>
+                                    {% if regional_leads %}
+                                    <ul class="list-group">
+                                        {% for lead in regional_leads %}
+                                        <li class="list-group-item">
+                                            <span class="badge light_blue">{{lead.region}}</span>
+                                            <span class=""><b>Full Name: </b></span>{{lead.first_name}} {{lead.last_name}}<br>
+                                            <span class=""><b>Email: </b></span>{{lead.email}}<br>
+                                            <span class=""><b>Phone Number: </b></span>{{lead.phone_number}}<br>
+                                        </li><br>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+									<span class="card__box">
+								    	<p>No<br>Regional Leaders<br>Available</p>
+								    </span> 
+                                    {% endif %}
+                                    <span class="card__footer">
+                                        <a href="" data-toggle="modal" data-target="#addRegional">
+                                            <span class="fa fa-plus-circle amber_red"></span>
+                                            <span class="">Add A Regional Leader</span>
+                                        </a>
+                                    </span>
+								  </div>
+								</div>
+                    		</div>
+                    		<div class="col-md-6">
+                    			<div class="login__box">
+								  <div class="__container">
+								    <span class="light_blue_box"><h4><b>Team Leaders</b></h4></span>
+								    <hr>
+                                    {% if team_leads %}
+                                     <ul class="list-group">
+                                        {% for lead in team_leads %}
+                                        <li class="list-group-item">
+                                            <span class="badge light_blue">{{lead.region}}</span>
+                                            <span class="badge light_blue">{{lead.van}}</span>
+                                            <span class=""><b>Full Name: </b></span>{{lead.first_name}} {{lead.last_name}}<br>
+                                            <span class=""><b>Email: </b></span>{{lead.email}}<br>
+                                            <span class=""><b>Phone Number: </b></span>{{lead.phone_number}}<br>
+                                        </li><br>
+                                        {% endfor %}
+                                    </ul>
+
+                                    {% else %}
+								    <span class="card__box">	
+								    	<p>No<br>Teamer Leaders<br>Available</p>
+								    </span>
+                                    {% endif %}
+                                    <span class="card__footer">
+                                        <a href="" data-toggle="modal" data-target="#addTeamlead">
+                                            <span class="fa fa-plus-circle amber_red"></span>
+                                            <span class="">Add A Team Leader</span>
+                                        </a>
+                                    </span>
+								  </div>
+								</div>
+                    		</div>
+                            {% endif %}
+                            {%  if user_role == 'teamlead' %}
+
+                            {% endif %}
+
+                            {% if user_role == 'regional' %}
+                            <h1>Me</h1>
+                            {% endif %}
+
+                    	</div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+<div class="modal fade" id="addRegional" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h1 class="lead">Add a Regional Supervisor</h1>
+      </div>
+      <div class="modal-body">
+         <form action='/addRegional' method ='POST'>
+             <div class="form-group text-muted">
+             <label for="first_name">First Name</label>
+             <input type="text" id= "first_name" name="first_name" required class="form-control" placeholder="First Name">
+            </div>
+            <div class="form-group text-muted">
+             <label for="last_name">Last Name</label>
+             <input type="text" id= "last_name" name="last_name" required class="form-control" placeholder="Last Name">
+            </div>
+            <div class="form-group text-muted">
+             <label for="email">Email Address</label>
+             <input type="text" id= "last_name" name="email" required class="form-control" placeholder="Email Address">
+            </div>
+            <div class="form-group text-muted">
+             <label for="phone_number">Phone Number</label>
+             <input type="tel" id= "phone_number" name="phone_number" required class="form-control" placeholder="Format: 1234567890">
+            </div>
+            <div class="form-group text-muted">
+             <label for="region">Region</label>
+             <input type="number" id= "region" name="region" required class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+                <input type="submit" value="Add Regional" class="btn btn-primary btn-sm">
+            </div>
+        </form>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+
+<div class="modal fade" id="addTeamlead" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h1 class="lead">Add a Team Leader</h1>
+      </div>
+      <div class="modal-body">
+         <form action='/addTeamLeader' method ='POST'>
+             <div class="form-group text-muted">
+             <label for="first_name">First Name</label>
+             <input type="text" id= "first_name" name="first_name" required class="form-control" placeholder="First Name">
+            </div>
+            <div class="form-group text-muted">
+             <label for="last_name">Last Name</label>
+             <input type="text" id= "last_name" name="last_name" required class="form-control" placeholder="Last Name">
+            </div>
+            <div class="form-group text-muted">
+             <label for="email">Email Address</label>
+             <input type="text" id= "last_name" name="email" required class="form-control" placeholder="Email Address">
+            </div>
+            <div class="form-group text-muted">
+             <label for="phone_number">Phone Number</label>
+             <input type="tel" id= "phone_number" name="phone_number" required class="form-control" placeholder="Format: 1234567890">
+            </div>
+            <div class="form-group text-muted">
+             <label for="region">Region</label>
+             <input type="number" id= "region" name="region" required class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+                <input type="submit" value="Add Team Lead" class="btn btn-primary btn-sm">
+            </div>
+        </form>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+
+
+
+
+{% endblock %}

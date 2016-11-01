@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Van Assignments</title>
+</head>
+<body>
+<form action = "/assignments" method='POST'>
+        <legend>Van Assignments</legend>
+          <p>
+             <label>Team Leader</label>
+             <select name = "team_leaders">
+             {% for x in team_leaders %}
+                <option value = "{{ x.id }}">{{ x.first_name }} {{ x.last_name }}</option>
+               {% endfor %}
+             </select>
+             </p>
+
+             <label>Van Spaces </label><input type="number" name="vanspaces" required>
+             <label>Van Number </label><input type="text" name="van_number" required>
+
+             <p>
+             <input type="submit" value="submit">
+          </p>
+    </form>
+</body>
+</html>

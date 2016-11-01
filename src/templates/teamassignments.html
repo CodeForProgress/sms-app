@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Confirm Your Team Members</title>
+</head>
+<body>
+
+ <form action = "" method='POST'>
+        <legend>Team Assignments</legend>
+          <p>
+            <label>Team Members</label>
+             {% for y in range(vanspaces) %}
+             <p>
+               <select name = "team_member_{{y}}">
+               {% for x in team_members %}
+                  <option value = "{{ x.id }}">{{ x.first_name }} {{ x.last_name }}</option>
+                 {% endfor %}
+               </select>
+           </p>
+             {% endfor %}
+             <input type="submit" value="submit">
+          </p>
+    </form>
+
+  <p><a href='/'>Home</a></p>
+
+</body>
+</html>
