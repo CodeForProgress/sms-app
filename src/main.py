@@ -27,44 +27,9 @@ import string
 
 # Create app
 app = Flask(__name__)
-
-# Setup Flask-Mail
-app.config['DEBUG'] = True
-app.config['SECRET_KEY'] = 'super-secret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://postgres@localhost/stateless'
-
-app.config['SECURITY_REGISTERABLE'] = False 
-app.config['SECURITY_RECOVERABLE'] = True 
-app.config['SECURITY_CHANGEABLE'] = True 
-app.config['SECURITY_CONFIRMABLE'] = False
-app.config['USER_REQUIRE_INVITATION'] = True
-app.config['USER_ENABLE_EMAIL'] = True
-
-app.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'
-app.config['SECURITY_PASSWORD_SALT'] = "$2b$12$DwronLmZzi7taKr9Hv8JEe"
-
-app.config['SECURITY_EMAIL_SUBJECT_REGISTER'] = "Welcome to Political SMS App"
-app.config['SECURITY_EMAIL_SUBJECT_PASSWORD_NOTICE'] = "Your Political SMS App Password Has Changed."
-app.config['SECURITY_EMAIL_SUBJECT_PASSWORD_RESET'] = "Change Your Political SMS App Password"
-app.config['SECURITY_EMAIL_SUBJECT_PASSWORD_CHANGE_NOTICE'] = "Your Political SMS Password Has Been Changed"
-app.config['SECURITY_EMAIL_SUBJECT_CONFIRM'] = "Confirm Your Political SMS Email"
-
-# app.config['SECURITY_USER_IDENTITY_ATTRIBUTES'] =  ('phone_number', 'email')
-
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_DEBUG'] = True
-app.config['MAIL_USERNAME'] = 'ronesha@codeforprogress.org'
-app.config['MAIL_PASSWORD'] = '07cb77nesh'
-app.config['MAIL_DEFAULT_SENDER'] = 'ronesha@codeforprogress.org'
+app.config.from_pyfile('settings/config.py')
 
 mail = Mail(app)
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-URL = 'http://cd8f41ce.ngrok.io'
-SECRET_KEY = "u092i3049034"
 
 # Create database connection object
 db = SQLAlchemy(app)
@@ -158,11 +123,12 @@ security = Security(app, user_datastore, register_form=ExtendedRegisterForm)
 
 # Twilio Account Info
 twilio = db.session.query(Twilio).filter(Twilio.is_active==True).first()
+
 ACCOUNT_SID = twilio.account_sid
 AUTH_TOKEN = twilio.auth_token
-client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
-
 TWILIO_NUMBER = twilio.twilio_number
+
+client = TwilioRestClient(ACCOUNT_SID, AUTH_TOKEN)
 
 
 # Create a user to test with
