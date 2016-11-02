@@ -444,8 +444,9 @@ def messages_overview():
 @app.route('/alerts')
 @login_required
 def alerts_overview():
-    
-    return render_template('alerts_overview.html')
+    alerts = db.session.query(Emergency).all()
+
+    return render_template('alerts_overview.html',alerts=alerts)
 
 @app.route('/account', methods=["POST", "GET"])
 @login_required
@@ -524,7 +525,7 @@ def get_users_by_role(role):
     x = db.session.query(User).filter(User.on_shift==True).join(User.roles).filter(Role.name==role).all()
     return x 
 
-def get_team(region, van):
+def get_team_members(region, van):
     team_members = db.session.query(User).filter(User.region==region, User.van==van).join(User.roles).filter(Role.name=='member').all()
     return team_members
 
@@ -538,20 +539,18 @@ def get_teamlead(region, van):
 
 def get_team(region, van):
     team = db.session.query(User).filter(User.region==region, User.van==van, User.on_shift==True).all()
+    return team
 
 def get_region(region):
-    db.session.query(User).filter(User.region==region,User.on_shift==True).join(User.roles).filter(Role.name=='member', Role.name=='teamlead').all()
+    region = db.session.query(User).filter(User.region==region,User.on_shift==True).join(User.roles).filter((Role.name=='member') | (Role.name=='teamlead')).all()
+    return region
 
 def get_state():
-    db.session.query(User).filter(User.on_shift==True).join(User.roles).filter(Role.name=='regional', Role.name=='member', Role.name=='teamlead').all()
-
+    state = db.session.query(User).filter(User.on_shift==True).join(User.roles).filter((Role.name=='regional') | (Role.name=='member') | (Role.name=='teamlead')).all()
+    return state
 def get_caller_by_phone_number(phone_number):
     caller = db.session.query(User).filter(User.phone_number==phone_number).first()
     return caller
-
-
-
-
 
 
 
@@ -596,18 +595,106 @@ def get_text():
     # session.pop("activate_session")
    
    # Checks if the menu session is true and handles the responses
-    if menu_session == True:
-        if inbound_msg_body == "1":   
-            session.get("emergency_session") 
+
+   # ========================================= #
+   # ======= Emergencies and Alerts ========== #
+   # ========================================= #
+
+    menu = ["Press 1 for an emergency health care, residential, vehicle accident.",
+            "Press 2 for a natural disaster tornadoes, thuderstorms, hailsotrms, extreme cold weather.",
+            "Press 3 if violence or gunshot erupts.",
+            "Press 4 for an accident or structual failure fire, building collapse, toll or bridge/tunnel accident.",
+            "Press 5 for an utility incidents power outage, winter storms, severe cold/exposure."]
+
+    if inbound_msg_body.replace(' ', '').lower()[:10]=="emergency":
+        for x in menu:
+            client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body=x)
+        session['emergency_session'] = True
+
+    elif emergency: 
+        print "Runs"
+        if inbound_msg_body.replace(' ', '')[:2] == "1":
+            user = get_caller_by_phone_number(inbound_msg_from)
+            team = get_region(user.region)
+            for x in team:
+                emergency_message = "emergency health care, residential, vehicle accident"
+                if inbound_msg_from != x.phone_number:
+                    message = client.messages.create(to=x.phone_number, 
+                        from_=TWILIO_NUMBER, body="%s: Has issued an emergency alert due to an emergency health care, residential, vehicle accident\nPhone Number: %s" %(user.first_name, user.phone_number))
+        
+        elif inbound_msg_body.replace(' ', '')[:2] == "2":
+            user = get_caller_by_phone_number(inbound_msg_from)
+            team = get_region(user.region)
+            for x in team:
+                emergency_message = "natural disaster tornadoes, thuderstorms, hailsotrms, extreme cold weather"
+                if inbound_msg_from != x.phone_number:
+                    message = client.messages.create(to=x.phone_number, 
+                        from_=TWILIO_NUMBER, body="%s: Has issued an emergency alert due to a natural disaster tornadoes, thuderstorms, hailsotrms, extreme cold weather. \nPhone Number: %s" %(user.first_name, user.phone_number))
 
 
 
-    ################################
-    # ACTIVATE SESSION BEGINS HERE #
-    ################################
+        
+        elif inbound_msg_body.replace(' ', '')[:2] == "3":
+            user = get_caller_by_phone_number(inbound_msg_from)
+            team = get_region(user.region)
+            for x in team:
+                emergency_message = "violence or gunshot erupts"
+                if inbound_msg_from != x.phone_number:
+                    message = client.messages.create(to=x.phone_number, 
+                        from_=TWILIO_NUMBER, body="%s: Has issued an emergency alert due to an eruption of violence or gunshots\nPhone Number: %s" %(user.first_name, user.phone_number))
+
+
+        elif inbound_msg_body.replace(' ', '')[:2] == "4":
+            user = get_caller_by_phone_number(inbound_msg_from)
+            team = get_region(user.region)
+            for x in team:
+                emergency_message = "accident or structual failure fire, building collapse, toll or bridge/tunnel accident"
+                if inbound_msg_from != x.phone_number:
+                    message = client.messages.create(to=x.phone_number, 
+                        from_=TWILIO_NUMBER, body="%s: Has issued an emergency alert due to an accident or structual failure fire, building collapse, toll or bridge/tunnel accident.\nPhone Number: %s" %(user.first_name, user.phone_number))
+
+
+        elif inbound_msg_body.replace(' ', '')[:2] == "5":
+            user = get_caller_by_phone_number(inbound_msg_from)
+            team = get_region(user.region)
+            for x in team:
+                emergency_message = "utility incidents power outage, winter storms, severe cold/exposure"
+                if inbound_msg_from != x.phone_number:
+                    message = client.messages.create(to=x.phone_number, 
+                        from_=TWILIO_NUMBER, body="%s: Has issued an emergency alert due an utility incidents power outage, winter storms, severe cold/exposure.\nPhone Number: %s" %(user.first_name, user.phone_number))
+
+
+        client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body="All regional staff have been notified of you emergency and will contact you shortly.")
+        new_emergency = Emergency(msg=emergency_message,time=datetime.now(),phone_number=inbound_msg_from)
+        db.session.add(new_emergency)
+        db.session.commit()
+        session.pop("emergency_session")
+
+    elif inbound_msg_body.lower().replace(' ', '')[:7] == "urgent":
+
+        inbound_msg_body = inbound_msg_body.lower().replace("urgent","")
+        inbound_msg_body.capitalize()
+
+        new_emergency = Emergency(msg=inbound_msg_body,time=datetime.now(),phone_number=inbound_msg_from)
+        db.session.add(new_emergency)
+        db.session.commit()
+
+        user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
+        team = get_team(user.region, user.van)
+        
+        for x in team:
+            print x.phone_number
+            if inbound_msg_from != x.phone_number:
+                message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,body="%s: URGENT %s" %(user.first_name,inbound_msg_body))
+
+
+
+    # =========================================== #
+    # ================ ACTIVATE ================= #
+    # =========================================== #
 
     # If the caller text "Activate", a response will be sent         
-    elif inbound_msg_body[:9].lower().replace(" ","") == "activate":
+    elif inbound_msg_body.lower().replace(" ","")[:9] == "activate":
         try:
             # Queries the User table 
             user = User.query.filter(User.phone_number == inbound_msg_from).one()
@@ -660,7 +747,6 @@ def get_text():
             last_name_session.append(last_name)
         
             # Sends confromation text
-            # message = client.messages.create(to=inbound_msg_from,from_=TWILIO_NUMBER,body="You are now active")
             client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body="What is your FOUR digit van number? ")
             session["is_active"] = True
             session['activation_step'] = 3
@@ -687,17 +773,13 @@ def get_text():
             session.pop('activate_session')
             session.pop('last_name_session')
 
-
-
-    ################################
-     # ACTIVATE SESSION ENDS HERE #
-    ################################
-
     
 
-    ######### DEACTIVATE ###########
+    # =========================================== #
+    #  ============== DEACTIVATE ================ #
+    # =========================================== #
 
-    elif (inbound_msg_body[:11].lower()).replace(" ","") == "deactivate":
+    elif inbound_msg_body.lower().replace(" ","")[:11] == "deactivate":
         try:
             user = User.query.filter(User.phone_number== inbound_msg_from).one()
             if user.on_shift == True:
@@ -711,6 +793,8 @@ def get_text():
             message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body="This number is not registered in our system") 
 
 
+
+
     # ============================================ #
     # ========== TEAM LEADS MESSASING ============ #
     # ============================================ #
@@ -722,7 +806,7 @@ def get_text():
             client.messages.create(to=teamlead.phone_number, from_=TWILIO_NUMBER,body=inbound_msg_body)
 
         elif get_caller_role(inbound_msg_from) == 'teamlead':
-            teamleaders = get_users_by_role("teamlead")
+            teamleaders = get_teamleads_by_region(user.region)
 
             for leads in teamleaders:
                 if leads.phone_number != inbound_msg_from:
@@ -736,76 +820,23 @@ def get_text():
         elif get_caller_role(inbound_msg_from) == 'regional':
             user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
             team_leads = get_teamleads_by_region(user.region)
-                for x in team_leads:
-                    client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,body="%s: %s" %(user.first_name,inbound_msg_body))
+            for x in team_leads:
+                client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,body="%s: %s" %(user.first_name,inbound_msg_body))
 
 
 
-        fellow_tl = db.session.query(User).join(User.roles).filter(Role.name=="teamlead").filter(User.van==inc_msg_van).all()
-    elif add_van == True:
-        print "got to add van script"
-        try:
-            db.session.query(User).filter(User.phone_number==inbound_msg_from).update({'van':int(inbound_msg_body)})
-            db.session.commit()
-            session.pop("add_van_session")
-        except:
-            message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                     body="Please provide us with the correct van number")
-            session[add_van]= True            
+
+    # elif add_van == True:
+    #     print "got to add van script"
+    #     try:
+    #         db.session.query(User).filter(User.phone_number==inbound_msg_from).update({'van':int(inbound_msg_body)})
+    #         db.session.commit()
+    #         session.pop("add_van_session")
+    #     except:
+    #         message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
+    #                                  body="Please provide us with the correct van number")
+    #         session[add_van]= True            
     
-    
-    elif (inbound_msg_body[:11].lower()).replace(" ","") == "deactivate":
-        try:
-            user = User.query.filter(User.phone_number== inbound_msg_from).one()
-            if user.on_shift == True:
-                db.session.query(User).filter(User.phone_number == inbound_msg_from).update({"on_shift":(False)})
-                db.session.query(User).filter(User.phone_number == inbound_msg_from).update({"van":(0)})
-                db.session.commit()
-                message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                     body="Good Bye")
-            else:
-                message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                     body="You're not active.")
-        except:
-            message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                     body="This number is not registered in our system")
-    elif inbound_msg_body[:5].lower()=="menu":
-        
-        message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,
-                                                  body=menu)
-        menu_session = session.get("menu_session")
-        
-        print menu_session
-        message = client.messages.create(to=inbound_msg_from, 
-                                         from_=TWILIO_NUMBER,
-                                         body=["What is your emergency?"])
-        a = "save emergency"
-        session["menu_session"] = a
-    elif menu_session == "save emergency":
-        # session["emergency_session"] = inbound_msg_body
-        new_emergency = Emergency(msg=inbound_msg_body,
-                                  time=datetime.now(),
-                                  phone_number=inbound_msg_from)
-        db.session.add(new_emergency)
-        db.session.commit()
-        session.pop("menu_session")
-    elif (inbound_msg_body[:7].lower()) == "urgent":
-        print "*****caught emergency msg"
-        inbound_msg_body = inbound_msg_body.lower().replace("urgent","")
-        inbound_msg_body.capitalize()
-        print inbound_msg_body
-        new_emergency = Emergency(msg=inbound_msg_body,
-                                  time=datetime.now(),
-                                  phone_number=inbound_msg_from)
-        db.session.add(new_emergency)
-        db.session.commit()
-        user = db.session.query(User).filter(User.phone_number == inbound_msg_from).one()
-        team_members = db.session.query(User).filter(User.van == user.van).all()
-        
-        for x in team_members:
-            print x.phone_number
-            if inbound_msg_from != x.phone_number:
-                message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,body="%s: %s" %(user.first_name,inbound_msg_body))
 
     # elif inbound_msg_body[:7].lower().replace(" ","") == "roster" and inc_msg_user_role == "teamlead":
     #     roster = db.session.query(User).filter(User.van==inc_msg_van).filter(User.on_shift==True).all()
@@ -813,6 +844,18 @@ def get_text():
     #     for x in roster:
     #         print roster_list.append(x.first_name)
     #     message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body=("You're current van members are %s"%roster_list))
+
+    #     message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body=menu)
+    #     menu_session = session.get("menu_session")
+        
+    #     message = client.messages.create(to=inbound_msg_from, from_=TWILIO_NUMBER,body=["What is your emergency?"])
+    #     session["menu_session"] = "save emergency"
+
+    # elif menu_session == "save emergency":
+    #     new_emergency = Emergency(msg=inbound_msg_body,time=datetime.now(),phone_number=inbound_msg_from)
+    #     db.session.add(new_emergency)
+    #     db.session.commit()
+    #     session.pop("menu_session")
    
     else:
         if get_caller_role(inbound_msg_from) == 'state':
@@ -836,8 +879,7 @@ def get_text():
             team = get_team(user.region, user.van)
             for x in team:
                 if inbound_msg_from != x.phone_number:
-                    message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,
-                                                    body="%s: %s" %(user.first_name,inbound_msg_body))
+                    message = client.messages.create(to=x.phone_number, from_=TWILIO_NUMBER,body="%s: %s" %(user.first_name,inbound_msg_body))
     return "Done"
 
 if __name__ == '__main__':

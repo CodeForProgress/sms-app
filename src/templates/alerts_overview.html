@@ -68,15 +68,14 @@ StateLess! | Dashboard
                         </div>
                       </div>
                       <div class="row">
-                        <div class="col-md-4 col-md-offset-2">
+                        <div class="col-md-12">
                             <div class="confirm__header">View Alerts</div>
                             {% if alerts %}
                                   <ul class="list-group">
                                  {% for x in alerts %}
                                    <li class="list-group-item">
                                     <span>
-                                      <span><input type="checkbox" value="True" name = "confirmed_{{x.id}}"></span>
-                                      <span class="confirm__text">{{ x.message }} {{ x.from }}</span>
+                                      <span class="">Alert: {{ x.msg }}<br> Phone: {{ x.phone_number }}</span><br><br>
                                     </span>
                                   </li>
                               {% endfor %}
