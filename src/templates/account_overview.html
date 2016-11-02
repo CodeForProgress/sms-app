@@ -5,6 +5,7 @@ StateLess! | Teams Overview
 {% block content %}
 <body>
 <div id="wrapper">
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
         <!-- Sidebar -->
         <div id="sidebar-wrapper">
             <div class="sidebar-nav__upper">
@@ -61,37 +62,24 @@ StateLess! | Teams Overview
                     		</div>
                     	</div>
                     	<div class="row">
-                    		<div class="col-md-4 col-md-offset-2">
+                    		<div class="col-md-8 col-md-offset-2">
                     			<div class="login__box">
 								  <div class="__container">
-								  	<span class="light_blue_box"><h4><b>Regional Leaders</b></h4> </span>
-								  	<hr>
-									<span class="card__box">
-								    	<p>No<br>Regional Leaders<br>Available</p>
-								    </span> 
-                                    <span class="card__footer">
-                                        <a href="">
-                                            <span class="fa fa-plus-circle amber_red"></span>
-                                            <span class="">Add A Regional Leader</span>
-                                        </a>
-                                    </span>
-								  </div>
-								</div>
-                    		</div>
-                    		<div class="col-md-4">
-                    			<div class="login__box">
-								  <div class="__container">
-								    <span class="light_blue_box"><h4><b>Team Leaders</b></h4></span>
-								    <hr>
-								    <span class="card__box">	
-								    	<p>No<br>Teamer Leaders<br>Available</p>
-								    </span>
-                                    <span class="card__footer">
-                                        <a href="">
-                                            <span class="fa fa-plus-circle amber_red"></span>
-                                            <span class="">Add A Team Leader</span>
-                                        </a>
-                                    </span>
+                                    <h1 class="lead">Please Enter Your Twilio Account Information</h1>
+                                    <form action="" method="POST">
+                                        <div class="form-group">
+                                            {{render_field(form.account_sid, class="form-control", placeholder="Account SID")}}
+                                          </div>
+                                          <div class="form-group">
+                                            {{render_field(form.auth_token, class="form-control", placeholder="Auth Token")}}
+                                          </div>
+                                          <div class="form-group">
+                                            {{render_field(form.twilio_number, class="form-control", placeholder="Twilio Number")}}
+                                          </div>
+                                          <div class="form-group">
+                                            <input class="btn light_blue btn-sm" type='submit' value='Submit'>
+                                          </div>
+                                    </form>
 								  </div>
 								</div>
                     		</div>

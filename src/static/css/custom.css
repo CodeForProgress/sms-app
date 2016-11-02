@@ -1,6 +1,7 @@
  body {
     overflow-x: hidden;
  }
+
 .errors{
     font-family: 'Raleway', sans-serif;
     font-size: 10px;
@@ -47,6 +48,7 @@
     border-bottom: thick double rgba(41,128,185,1.0);
  }
 
+ 
 .login__box{
     padding: 20px;
     margin-bottom: 20px;
